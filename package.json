@@ -1,0 +1,12 @@
+{
+  "name": "carcassonne",
+  "description": "carcassonne game dev",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "3.2.5"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1"
+  }
+}

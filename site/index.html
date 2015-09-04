@@ -1,0 +1,202 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Carcassonne</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: #FFFFFF;
+		}
+		#debug {
+			position: fixed;
+			width: 200px;
+			background: rgba(200,200,200,0.5);
+			top: 40px;
+			right: 0;
+		}
+		.row {
+			padding: 0px;
+			border-bottom: 0px solid #000;
+		}
+		.user-block {
+			display: inline-block;
+			width: 100px;
+			height: 60px;
+			background: #EEE;
+		}
+		#block, #follower, #rotate {
+			border: 0px solid transparent;
+			width: 200px;
+			height: 160px;
+			cursor: pointer;
+		}
+		#block {
+			display: none;
+		}
+		#block:hover, #follower:hover, #rotate:hover {
+			color: white;
+			background: rgba(0,0,0,0.5);
+		}
+	</style>
+
+	<script src="vendor/pixi.dev.js"></script>
+	<script src="vendor/jquery.min.js"></script>
+	<script src="vendor/underscore-min.js"></script>
+
+</head>
+<body>
+	<div id="user"></div>
+	<div id="score_board">
+		<div class="user-block">Player 1: <div id="u1"></div></div>
+		<div class="user-block">Player 2: <div id="u2"></div></div>
+		<div class="user-block">Player 3: <div id="u3"></div></div>
+		<div class="user-block">Player 4: <div id="u4"></div></div>
+		<div class="user-block">Player 5: <div id="u5"></div></div>
+		<div class="user-block">Player 6: <div id="u6"></div></div>
+	</div>
+	<div id="debug">
+		<div class="row"></div>
+		<div class="row"></div>
+		<div class="row"></div>
+		<div class="row">
+			<button id="block">Place Block</button>
+		</div>
+		<div class="row">
+			<button id="follower">Finish</button>
+		</div>
+		<div class="row"></div>
+		<div class="row">
+			<button id="rotate">Rotate</button>
+		</div>
+	</div>
+
+	<script src="./main.js"></script>
+	<script type="text/javascript">
+		var select = document.querySelectorAll
+		var stage = new PIXI.Stage(0xEEEEEE, true)
+		var renderer = PIXI.autoDetectRenderer(2400,1600)
+		document.body.appendChild(renderer.view)
+
+		// field; castle; castle flag; road; cloister; edges[]; edgesType[]; n; seats[];
+		// edges[]: 1-field; 2-castle; 3-road
+		// edgesType[]: 0-null, 123-offset to next end; 4-endpoint; 5-field
+		// field=1, castle=2, road=3
+
+		BLOCKS = [
+		[0, 3, 0, [1,2,1,2],[5,4,5,4],
+			[[55,55,[0,1,4,5]]],
+			[[92,55,[0,1,0,0]],[20,55,[0,0,0,1]]]
+		],
+
+		[1, 3, 0, [1,3,3,2],[5,1,3,4],
+			[[55,35,[0,1,2,5]],[80,80,[3,4]]],
+			[[20,55,[0,0,0,1]],[65,65,[0,1,1,0]]]
+		],
+
+		[2, 9, 0, [3,3,1,1],[1,3,5,5],
+			[[80,20,[1,2]],[20,80,[0,3,4,5,6,7]]],
+			[[55,55,[1,1,0,0]]]
+		],
+
+		[3, 4, 0, [3,1,3,3],[4,5,4,4],
+			[[35,35,[0,7]],
+			[80,55,[1,2,3,4]],
+			[35,80,[5,6]]],
+			[[55,27,[1,0,0,0]],[27,55,[0,0,0,1]],[55,82,[0,0,1,0]]]
+		],
+
+		[4, 1, 0, [3,1,1,3],[3,5,5,1],
+			[[55,7,[0,1]],[55,100,[4,5]]],
+			[[55,55,[0,1,0,1]]]
+		],
+
+		[5, 1, 0, [3,2,2,2],[4,4,4,4],
+			[[35,20,[0]],[70,20,[1]]],
+			[[55,20,[1,0,0,0]],[55,80,[0,1,1,1]]]
+		],
+
+		[6, 3, 0, [3,3,2,3],[4,4,4,4],
+			[[20,15,[0,7]],[80,15,[1,2]],[55,65,[3,6]]],
+			[[55,15,[1,0,0,0]],[82,45,[0,1,0,0]],[55,92,[0,0,1,0]],[27,45,[0,0,0,1]]]
+		],
+
+		[7, 4, 0, [2,3,1,3],[4,2,5,2],
+			[[20,40,[2,7]],[55,80,[3,4,5,6]]],
+			[[55,27,[1,0,0,0]],[55,55,[0,1,0,1]]]
+		],
+
+		[8, 4, 1, [1,2,1,2],[5,2,5,2],
+			[[55,7,[0,1]],[55,100,[4,5]]],
+			[[55,55,[0,1,0,1]]]
+		],
+
+		[9, 2, 1, [2,2,3,2],[0,0,4,0],
+			[[30,100,[5]],[80,100,[4]]],
+			[[55,55,[1,1,0,1]],[55,90,[0,0,1,0]]]
+		],
+
+		[10, 3, 0, [1,1,2,2],[5,5,0,0],
+			[[80,20,[0,1,2,3]]],
+			[[20,80,[0,0,1,1]]]
+		],
+
+		[11, 1, 1, [2,2,2,2],[0,0,0,0],
+			[],
+			[[55,55,[1,1,1,1]]]
+		],
+
+		[12, 4, 0, [1,1,1,1],[5,5,5,5],
+			[[70,55,[0,1,2,3,4,5,6,7]]],
+			[[55,55,[]]]
+		],
+
+		[13, 2, 0, [1,1,1,3],[5,5,5,4],
+			[[70,55,[0,1,2,3,4,5,6,7]]],
+			[[55,55,[]],[20,55,[0,0,0,1]]]
+		],
+
+		[14, 1, 0, [3,3,3,3],[4,4,4,4],
+			[[20,20,[0,7]],[90,20,[1,2]],[90,90,[3,4]],[20,90,[5,6]]],
+			[[55,20,[1,0,0,0]],[80,55,[0,1,0,0]],[55,80,[0,0,1,0]],[30,55,[0,0,0,1]]],
+		],
+
+		[15, 3, 0, [2,2,3,3],[0,0,1,3],
+			[[20,90,[5,6]],[50,60,[4,7]]],
+			[[30,85,[0,0,1,1]],[90,15,[1,1,0,0]]]
+		],
+
+		[16, 3, 0, [2,3,3,1],[4,1,3,5],
+			[[40,60,[2,3,5,6,7]],[90,90,[3,4]]],
+			[[55,20,[1,0,0,0]],[70,70,[0,1,1,0]]]
+		],
+		[17, 2, 1, [3,2,2,3],[3,0,0,1],
+			[[20,20,[0,7]],[55,55,[1,6]]],
+			[[35,35,[1,0,0,1]],[90,90,[0,1,1,0]]]
+		],
+		[19, 2, 0, [2,1,1,2],[4,5,5,4],
+			[[55,55,[2,3,4,5]]],
+			[[55,15,[1,0,0,0]],[10,55,[0,0,0,1]]]
+		],
+		[18, 2, 1, [1,1,2,2],[5,5,0,0],
+			[[55,55,[0,1,2,3]]],
+			[[20,90,[0,0,1,1]]]
+		],
+
+
+
+
+
+		]
+		;
+
+		var play = new Playground(BLOCKS, 6);
+		// document.getElementById('restart').addEventListener('click', function() {
+		// 	stage = new PIXI.Stage(0x000000, true)
+		// 	renderer = PIXI.autoDetectRenderer(1200,1200)
+		// 	document.body.appendChild(renderer.view)
+		// 	play = new Playground(TEST);
+		// }, false);
+	</script>
+</body>
+</html>
